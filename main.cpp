@@ -9,11 +9,19 @@
 using namespace std;
 
 string path = "./disk.dk";
+
+struct Partition {
+  int size = 0;
+  char unit; 
+  char name[25]; 
+};
+
 struct MBR
 {
   int mbr_tamano;
   char mbr_fecha_creacion[17];
   int mbr_dsk_signature;
+  Partition partitions[4];
 };
 
 /**
@@ -82,27 +90,58 @@ void write()
   fclose(disk_file);
 }
 
+void fdisk(int size, char unit, string path, string name){
+  // LEER MBR
+  MBR mbr;
+  FILE *disk_file = fopen(path.c_str(), "r+");
+  fseek(disk_file, 0, SEEK_SET);
+  fread(&mbr, sizeof(MBR), 1, disk_file);
+
+  // BUSCAR PARTICION LIBRE
+  int partitionIndex = 0;
+  for(int i =0; i < 4; i++) {
+    if(mbr.partitions[i].size == 0){
+      partitionIndex = i;
+      break;
+    }
+  }
+
+  // AGREGAR PARTICION
+  Partition nuevaPart;
+  nuevaPart.size = 1024 * (unit == 'm' ? 1024 : 1) * size;
+  nuevaPart.unit = unit;
+  strcpy(nuevaPart.name, name.c_str());
+
+  mbr.partitions[partitionIndex] = nuevaPart;
+
+  // GUARDAR
+  fseek(disk_file, 0, SEEK_SET);
+  fwrite(&mbr, sizeof(MBR), 1, disk_file);
+
+  fclose(disk_file);
+}
+
 void rep()
 {
-  // STRUCT QUE VAMOS A LEER
-  MBR data;
+  MBR rep;
 
-  // AQUÍ ABRIMOS COMO LECTURA (r+) EL ARCHIVO BINARIO
   FILE *disk_file = fopen(path.c_str(), "r+");
-
-  // FSEEK NOS POSICIONA DENTRO  DEL ARCHIVO
-  fseek(disk_file, 0, SEEK_SET); // EL SEGUNDO PARAMETRO ES LA POSICIÓN (0 EN ESTE CASO)
-
-  // CON FREAD LEEMOS EL STRUCT LUEGO DE POSICIONARNOS
-  fread(&data, sizeof(MBR), 1, disk_file); // EL TERCER PAREMETRO ES LA CANTIDAD DE STRUCTS A GUARDAR (EN ESTE CASO SOLO 1)
-
-  // CERRAR STREAM (importante)
+  fseek(disk_file, 0, SEEK_SET); 
+  fread(&rep, sizeof(MBR), 1, disk_file); 
   fclose(disk_file);
 
-  // AQUÍ MOSTRAMOS EL STRUCT
-  cout << data.mbr_tamano << endl
-       << data.mbr_fecha_creacion << endl
-       << data.mbr_dsk_signature << endl;
+  cout << "--- MBR ---" << endl;
+  cout << rep.mbr_tamano << endl
+       << rep.mbr_fecha_creacion << endl
+       << rep.mbr_dsk_signature << endl;
+
+  cout << "--- PARTICIONES ---" << endl;
+  for(int i =0; i < 4;i++) {
+    cout << rep.partitions[i].size << endl
+         << rep.partitions[i].unit << endl
+         << rep.partitions[i].name << endl;
+    cout << "------------" << endl;
+  }
 }
 
 void abrir(string path){
@@ -113,7 +152,12 @@ void abrir(string path){
     if (linea=="mkdisk")
     {
       write();
+    }else if (linea=="fdisk")
+    {
+      fdisk(3, 'm', "disk.dk", "primero");
+      fdisk(1, 'm', "disk.dk", "segundo");
     }
+    
     else
     {
       rep();
@@ -127,7 +171,7 @@ int main(int argc, char *argv[])
 {
   cout<<"BRAYAN HAMLLELO ESTEVEM PRADO MARROQUN"<<endl
       <<"CARNET - 201801369"<<endl;
-  abrir(argv[3]);
+  abrir("prueba.txt");
   //write();
   //rep();
 }

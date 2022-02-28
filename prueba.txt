@@ -1,2 +1,3 @@
 mkdisk
+fdisk
 rep
