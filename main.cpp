@@ -2,13 +2,13 @@
 #include <iostream>
 #include <stdio.h>
 #include <string.h>
+#include <sstream>
 #include <stdlib.h>
 #include <fstream>
 
-
 using namespace std;
 
-string path = "./disk.dk";
+string pathF = "./disk.dk";
 
 struct Partition {
   int size = 0;
@@ -33,7 +33,6 @@ string format_day_prop(int field) {
   return (field < 10 ? "0" : "") + to_string(field);
 }
 
-
 /**
  * Obtener fecha como string
  * @brief Retorna un string de la fecha actual
@@ -49,12 +48,11 @@ string get_now() {
   return current_date;
 }
 
-
 void write()
 {
   // STRUCT QUE VAMOS A GUARDAR
   MBR data;
-
+  cout<<"Hola"<<endl;
   // DATOS DE PRUEBA
   int mbr_tamano = 1024 * 1024 * 5; // 1024 === 1 kb * 1024 = 1 mb * 5 = 5mb
   string mbr_fecha_creacion = get_now(); // VER FUNCION ARRIBA
@@ -66,7 +64,7 @@ void write()
   data.mbr_dsk_signature = mbr_dsk_signature;
 
   // AQUÍ ABRIMOS COMO LECTURA Y ESCRITURA (rb+) EL ARCHIVO BINARIO
-  FILE *disk_file = fopen(path.c_str(), "rb+");
+  FILE *disk_file = fopen(pathF.c_str(), "wb+");
 
   // FSEEK NOS POSICIONA DENTRO DEL ARCHIVO
   fseek(disk_file, 0, SEEK_SET); // EL SEGUNDO PARAMETRO ES LA POSICIÓN (0 EN ESTE CASO)
@@ -90,7 +88,7 @@ void write()
   fclose(disk_file);
 }
 
-void fdisk(int size, char unit, string path, string name){
+/*void fdisk(int size, char unit, string path, string name){
   // LEER MBR
   MBR mbr;
   FILE *disk_file = fopen(path.c_str(), "r+");
@@ -119,13 +117,13 @@ void fdisk(int size, char unit, string path, string name){
   fwrite(&mbr, sizeof(MBR), 1, disk_file);
 
   fclose(disk_file);
-}
+}*/
 
 void rep()
 {
   MBR rep;
 
-  FILE *disk_file = fopen(path.c_str(), "r+");
+  FILE *disk_file = fopen(pathF.c_str(), "r+");
   fseek(disk_file, 0, SEEK_SET); 
   fread(&rep, sizeof(MBR), 1, disk_file); 
   fclose(disk_file);
@@ -135,36 +133,30 @@ void rep()
        << rep.mbr_fecha_creacion << endl
        << rep.mbr_dsk_signature << endl;
 
-  cout << "--- PARTICIONES ---" << endl;
-  for(int i =0; i < 4;i++) {
-    cout << rep.partitions[i].size << endl
-         << rep.partitions[i].unit << endl
-         << rep.partitions[i].name << endl;
-    cout << "------------" << endl;
-  }
 }
 
 void abrir(string path){
-  ifstream archivo(path);
+  ifstream Archivo(path);
   string linea;
-  while (getline(archivo,linea))
+
+  while (getline(Archivo, linea))
   {
-    if (linea=="mkdisk")
-    {
-      write();
-    }else if (linea=="fdisk")
-    {
-      fdisk(3, 'm', "disk.dk", "primero");
-      fdisk(1, 'm', "disk.dk", "segundo");
+    int Estado = 0; 
+    stringstream nueva(linea);
+    string line;
+
+    while (getline(nueva, line, ' ')){
+      if (line=="mkdisk")
+      {
+        write();
+        cout<<"Nuevo Disco"<<endl;
+      }else if (line=="rep")
+      {
+        rep();
+      }
+      
     }
-    
-    else
-    {
-      rep();
-    }
-    
   }
-  
 }
 
 int main(int argc, char *argv[])
